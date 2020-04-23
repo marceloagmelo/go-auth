@@ -1,0 +1,6 @@
+# Arquivo binario
+go-auth
+
+# Vendor
+vendor/
+.vendor-new/
