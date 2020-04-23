@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
-# Message API
+source setenv.sh
+
 echo "Finalizando o $APP_NAME..."
 docker rm -f $APP_NAME

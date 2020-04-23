@@ -2,4 +2,4 @@
 
 source setenv.sh
 
-docker build -t $DOCKER_REGISTRY/go-message-api .
+docker build -t $DOCKER_REGISTRY/$APP_NAME .

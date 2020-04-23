@@ -5,7 +5,7 @@ Este é um serviço de acesso aos dados do usuário no banco **MySQL**. Este ser
 - [Listar Usuarios](#listar-usuarios)
 - [Adicionar Usuário](#adicionar-usuario)
 - [Atualizar Usuário](#atualizar-usuario)
-- [login Usuário](#readicionar-usuario)
+- [Login Usuário](#readicionar-usuario)
 - [Apagar Usuário](#apagar-usuario)
 - [Listar por Status do Usuário](#listar-por-status-do-usuario)
 - [Recuperar um Usuário](#recuperar-um-usuario)
@@ -69,31 +69,31 @@ http://localhost:8181/go-auth/api/v1/health
 # Serviços
 Lista dos serviços disponíveis:
 
-### Listar Usuários
+### Listar Usuarios
 [http://localhost:8181/go-auth/api/v1/Usuarios](http://localhost:8181/go-auth/api/v1/Usuarios)
 
-### Adicionar Usuário
+### Adicionar Usuario
 ```
 curl -v -d '{"login":"marcelo", "senha":"password", "email": "xpto@gmail.com}' -H "Content-Type: application/json" -X POST http://localhost:8181/go-auth/api/v1/usuario/adicionar
 ```
 
-### Atualizar Usuário
+### Atualizar Usuario
 ```
 curl -v -d '{"id":1, "login":"marcelo", "senha":"password", "email": "xpto@gmail.com, "status":2}' -H "Content-Type: application/json" -X PUT http://localhost:8181/go-auth/api/v1/usuario/atualizar
 ```
 
-### login Usuário
+### Login Usuario
 ```
 curl -v -d '{"login":"marcelo", "senha":"password"}' -H "Content-Type: application/json" -X POST http://localhost:8181/go-auth/api/v1/usuario/login
 ```
 
-### Apagar Usuário
+### Apagar Usuario
 ```
 curl -H "Content-Type: application/json" -X DELETE http://localhost:8181/go-auth/api/v1/usuario/apagar/1
 ```
 
-### Listar por Status do Usuário
+### Listar por Status do Usuario
 [http://localhost:8181/go-auth/api/v1/usuario/status/2](http://localhost:8181/go-auth/api/v1/usuario/status/1)
 
-### Recuperar um Usuário
+### Recuperar um Usuario
 [http://localhost:8181/go-auth/api/v1/usuario/1](http://localhost:8181/go-auth/api/v1/usuario/1)

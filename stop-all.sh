@@ -6,7 +6,6 @@ source setenv.sh
 echo "Finalizando o mysql..."
 docker rm -f $MYSQL_HOSTNAME
 
-# Message API
 echo "Finalizando o $APP_NAME..."
 docker rm -f $APP_NAME
 
