@@ -3,6 +3,7 @@ package handler
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -42,15 +43,7 @@ func Health(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 //TodosUsuarios listagem de todoos os usuários
 func TodosUsuarios(db db.Database, w http.ResponseWriter, r *http.Request) {
-	username, password, ok := r.BasicAuth()
-	if !ok {
-		mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
-		logger.Erro.Println(mensagem)
-		respondError(w, http.StatusInternalServerError, mensagem)
-		return
-	}
-
-	_, err := getUsuario(db, username, password)
+	err := validaBasicAuth(db, r)
 	if err != nil {
 		mensagem := fmt.Sprintf("%s", err)
 		respondError(w, http.StatusInternalServerError, mensagem)
@@ -75,15 +68,7 @@ func Adicionar(db db.Database, w http.ResponseWriter, r *http.Request) {
 	var novoUsuario models.Usuario
 
 	if r.Method == "POST" {
-		username, password, ok := r.BasicAuth()
-		if !ok {
-			mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
-			logger.Erro.Println(mensagem)
-			respondError(w, http.StatusInternalServerError, mensagem)
-			return
-		}
-
-		_, err := getUsuario(db, username, password)
+		err := validaBasicAuth(db, r)
 		if err != nil {
 			mensagem := fmt.Sprintf("%s", err)
 			respondError(w, http.StatusInternalServerError, mensagem)
@@ -103,7 +88,6 @@ func Adicionar(db db.Database, w http.ResponseWriter, r *http.Request) {
 		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha))
 		senhaHash := fmt.Sprintf("%X", senhaSum)
 
-		novoUsuario.Login = novoUsuario.Login
 		novoUsuario.Senha = string(senhaHash)
 		novoUsuario.Status = 1
 
@@ -147,15 +131,7 @@ func Atualizar(db db.Database, w http.ResponseWriter, r *http.Request) {
 	var novoUsuario models.Usuario
 
 	if r.Method == "PUT" {
-		username, password, ok := r.BasicAuth()
-		if !ok {
-			mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
-			logger.Erro.Println(mensagem)
-			respondError(w, http.StatusInternalServerError, mensagem)
-			return
-		}
-
-		_, err := getUsuario(db, username, password)
+		err := validaBasicAuth(db, r)
 		if err != nil {
 			mensagem := fmt.Sprintf("%s", err)
 			respondError(w, http.StatusInternalServerError, mensagem)
@@ -170,7 +146,7 @@ func Atualizar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal(reqBody, &novoUsuario)
 
-		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha + novoUsuario.Login))
+		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha))
 		senhaHash := fmt.Sprintf("%X", senhaSum)
 
 		novoUsuario.Senha = string(senhaHash)
@@ -244,15 +220,7 @@ func Logar(db db.Database, w http.ResponseWriter, r *http.Request) {
 //Apagar apagar um usuário
 func Apagar(db db.Database, w http.ResponseWriter, r *http.Request) {
 	if r.Method == "DELETE" {
-		username, password, ok := r.BasicAuth()
-		if !ok {
-			mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
-			logger.Erro.Println(mensagem)
-			respondError(w, http.StatusInternalServerError, mensagem)
-			return
-		}
-
-		_, err := getUsuario(db, username, password)
+		err := validaBasicAuth(db, r)
 		if err != nil {
 			mensagem := fmt.Sprintf("%s", err)
 			respondError(w, http.StatusInternalServerError, mensagem)
@@ -297,15 +265,7 @@ func Apagar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 //ListarStatus lista de usuários por status
 func ListarStatus(db db.Database, w http.ResponseWriter, r *http.Request) {
-	username, password, ok := r.BasicAuth()
-	if !ok {
-		mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
-		logger.Erro.Println(mensagem)
-		respondError(w, http.StatusInternalServerError, mensagem)
-		return
-	}
-
-	_, err := getUsuario(db, username, password)
+	err := validaBasicAuth(db, r)
 	if err != nil {
 		mensagem := fmt.Sprintf("%s", err)
 		respondError(w, http.StatusInternalServerError, mensagem)
@@ -350,15 +310,7 @@ func ListarStatus(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 //UmUsuario recuperar usuário
 func UmUsuario(db db.Database, w http.ResponseWriter, r *http.Request) {
-	username, password, ok := r.BasicAuth()
-	if !ok {
-		mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
-		logger.Erro.Println(mensagem)
-		respondError(w, http.StatusInternalServerError, mensagem)
-		return
-	}
-
-	_, err := getUsuario(db, username, password)
+	err := validaBasicAuth(db, r)
 	if err != nil {
 		mensagem := fmt.Sprintf("%s", err)
 		respondError(w, http.StatusInternalServerError, mensagem)
@@ -420,4 +372,22 @@ func getUsuario(db db.Database, login, senha string) (models.Usuario, error) {
 
 	}
 	return usuario, nil
+}
+
+func validaBasicAuth(db db.Database, r *http.Request) error {
+	username, password, ok := r.BasicAuth()
+	if !ok {
+		mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
+		logger.Erro.Println(mensagem)
+		err := errors.New(mensagem)
+		return err
+	}
+
+	_, err := getUsuario(db, username, password)
+	if err != nil {
+		mensagem := fmt.Sprintf("%s", err)
+		logger.Erro.Println(mensagem)
+		return err
+	}
+	return nil
 }
