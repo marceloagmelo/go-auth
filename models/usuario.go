@@ -1,6 +1,7 @@
 package models
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 
@@ -146,7 +147,10 @@ func (usu Usuario) Logar(usuarioModel db.Collection) (Usuario, error) {
 
 	var usuario Usuario
 
-	resultado := usuarioModel.Find("login=?", usu.Login)
+	senhaSum := sha256.Sum256([]byte(usu.Senha + usu.Login))
+	senhaHash := fmt.Sprintf("%X", senhaSum)
+
+	resultado := usuarioModel.Find("login=? and senha=?", usu.Login, senhaHash)
 	if count, err := resultado.Count(); count < 1 {
 		mensagem := ""
 		if err != nil {

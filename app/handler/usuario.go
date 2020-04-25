@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +13,6 @@ import (
 	"github.com/marceloagmelo/go-auth/models"
 	"github.com/marceloagmelo/go-auth/utils"
 	"github.com/marceloagmelo/go-auth/variaveis"
-	"golang.org/x/crypto/bcrypt"
 	"upper.io/db.v3"
 )
 
@@ -70,14 +70,10 @@ func Adicionar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal(reqBody, &novoUsuario)
 
-		hashedSenha, err := bcrypt.GenerateFromPassword([]byte(novoUsuario.Senha), 8)
-		if err != nil {
-			mensagem := fmt.Sprintf("%s: %s", "Criptografando senha do usuário", err)
-			logger.Erro.Println(mensagem)
-			respondError(w, http.StatusInternalServerError, mensagem)
-			return
-		}
-		novoUsuario.Senha = string(hashedSenha)
+		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha + novoUsuario.Login))
+		senhaHash := fmt.Sprintf("%X", senhaSum)
+
+		novoUsuario.Senha = string(senhaHash)
 		novoUsuario.Status = 1
 
 		if novoUsuario.Login != "" && novoUsuario.Senha != "" && novoUsuario.Email != "" {
@@ -128,14 +124,10 @@ func Atualizar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal(reqBody, &novoUsuario)
 
-		hashedSenha, err := bcrypt.GenerateFromPassword([]byte(novoUsuario.Senha), 8)
-		if err != nil {
-			mensagem := fmt.Sprintf("%s: %s", "Criptografando senha do usuário", err)
-			logger.Erro.Println(mensagem)
-			respondError(w, http.StatusInternalServerError, mensagem)
-			return
-		}
-		novoUsuario.Senha = string(hashedSenha)
+		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha + novoUsuario.Login))
+		senhaHash := fmt.Sprintf("%X", senhaSum)
+
+		novoUsuario.Senha = string(senhaHash)
 
 		if novoUsuario.ID > 0 && novoUsuario.Login != "" && novoUsuario.Senha != "" && novoUsuario.Email != "" && utils.InBetween(novoUsuario.Status, 1, 2) {
 			var usuarioModel = db.Collection("usuario")
@@ -194,12 +186,6 @@ func Logar(db db.Database, w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if err = bcrypt.CompareHashAndPassword([]byte(usuarioRecuperado.Senha), []byte(usuario.Senha)); err != nil {
-				mensagem := fmt.Sprintf("%s: %s", "Usuário ou senha inválidos", err)
-				logger.Erro.Println(mensagem)
-				respondError(w, http.StatusInternalServerError, mensagem)
-				return
-			}
 			usuario = usuarioRecuperado
 
 		} else {
