@@ -156,7 +156,7 @@ func (usu Usuario) Logar(usuarioModel db.Collection) (Usuario, error) {
 		if err != nil {
 			mensagem = fmt.Sprintf("%s: %s", "Erro ao tentar logar usuário", err)
 		} else {
-			mensagem = fmt.Sprintf("Usuário [%s] não encontrado!", usu.Login)
+			mensagem = fmt.Sprintf("Verifique se o usuário [%s] existe ou senha inválida!", usu.Login)
 			err = errors.New(mensagem)
 		}
 

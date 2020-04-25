@@ -42,6 +42,21 @@ func Health(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 //TodosUsuarios listagem de todoos os usuários
 func TodosUsuarios(db db.Database, w http.ResponseWriter, r *http.Request) {
+	username, password, ok := r.BasicAuth()
+	if !ok {
+		mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
+		logger.Erro.Println(mensagem)
+		respondError(w, http.StatusInternalServerError, mensagem)
+		return
+	}
+
+	_, err := getUsuario(db, username, password)
+	if err != nil {
+		mensagem := fmt.Sprintf("%s", err)
+		respondError(w, http.StatusInternalServerError, mensagem)
+		return
+	}
+
 	var usuarioModel = db.Collection("usuario")
 
 	usuarios, err := models.TodosUsuarios(usuarioModel)
@@ -60,6 +75,21 @@ func Adicionar(db db.Database, w http.ResponseWriter, r *http.Request) {
 	var novoUsuario models.Usuario
 
 	if r.Method == "POST" {
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
+			logger.Erro.Println(mensagem)
+			respondError(w, http.StatusInternalServerError, mensagem)
+			return
+		}
+
+		_, err := getUsuario(db, username, password)
+		if err != nil {
+			mensagem := fmt.Sprintf("%s", err)
+			respondError(w, http.StatusInternalServerError, mensagem)
+			return
+		}
+
 		reqBody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			mensagem := fmt.Sprintf("%s: %s", "Adicionando novo usuário no banco de dados", err)
@@ -70,9 +100,10 @@ func Adicionar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal(reqBody, &novoUsuario)
 
-		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha + novoUsuario.Login))
+		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha))
 		senhaHash := fmt.Sprintf("%X", senhaSum)
 
+		novoUsuario.Login = novoUsuario.Login
 		novoUsuario.Senha = string(senhaHash)
 		novoUsuario.Status = 1
 
@@ -116,6 +147,21 @@ func Atualizar(db db.Database, w http.ResponseWriter, r *http.Request) {
 	var novoUsuario models.Usuario
 
 	if r.Method == "PUT" {
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
+			logger.Erro.Println(mensagem)
+			respondError(w, http.StatusInternalServerError, mensagem)
+			return
+		}
+
+		_, err := getUsuario(db, username, password)
+		if err != nil {
+			mensagem := fmt.Sprintf("%s", err)
+			respondError(w, http.StatusInternalServerError, mensagem)
+			return
+		}
+
 		reqBody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			mensagem := fmt.Sprintf("%s: %s", "Erro ao atualizar o usuário", err)
@@ -173,21 +219,13 @@ func Logar(db db.Database, w http.ResponseWriter, r *http.Request) {
 		json.Unmarshal(reqBody, &usuario)
 
 		if usuario.Login != "" && usuario.Senha != "" {
-			var usuarioModel = db.Collection("usuario")
-			var interf models.Metodos
-
-			interf = usuario
-
-			var usuarioRecuperado models.Usuario
-			usuarioRecuperado, err = interf.Logar(usuarioModel)
+			usuarioRetorno, err := getUsuario(db, usuario.Login, usuario.Senha)
 			if err != nil {
-				mensagem := fmt.Sprintf("%s: %s", "Erro ao logar o usuário", err)
+				mensagem := fmt.Sprintf("%s", err)
 				respondError(w, http.StatusInternalServerError, mensagem)
 				return
 			}
-
-			usuario = usuarioRecuperado
-
+			usuario = usuarioRetorno
 		} else {
 			mensagem := fmt.Sprint("Login ou Senha obrigatórios!")
 			logger.Erro.Println(mensagem)
@@ -206,6 +244,21 @@ func Logar(db db.Database, w http.ResponseWriter, r *http.Request) {
 //Apagar apagar um usuário
 func Apagar(db db.Database, w http.ResponseWriter, r *http.Request) {
 	if r.Method == "DELETE" {
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
+			logger.Erro.Println(mensagem)
+			respondError(w, http.StatusInternalServerError, mensagem)
+			return
+		}
+
+		_, err := getUsuario(db, username, password)
+		if err != nil {
+			mensagem := fmt.Sprintf("%s", err)
+			respondError(w, http.StatusInternalServerError, mensagem)
+			return
+		}
+
 		vars := mux.Vars(r)
 		id, err := strconv.Atoi(vars["id"])
 		if err != nil {
@@ -244,6 +297,21 @@ func Apagar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 //ListarStatus lista de usuários por status
 func ListarStatus(db db.Database, w http.ResponseWriter, r *http.Request) {
+	username, password, ok := r.BasicAuth()
+	if !ok {
+		mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
+		logger.Erro.Println(mensagem)
+		respondError(w, http.StatusInternalServerError, mensagem)
+		return
+	}
+
+	_, err := getUsuario(db, username, password)
+	if err != nil {
+		mensagem := fmt.Sprintf("%s", err)
+		respondError(w, http.StatusInternalServerError, mensagem)
+		return
+	}
+
 	vars := mux.Vars(r)
 	status, err := strconv.Atoi(vars["status"])
 	if err != nil {
@@ -282,6 +350,21 @@ func ListarStatus(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 //UmUsuario recuperar usuário
 func UmUsuario(db db.Database, w http.ResponseWriter, r *http.Request) {
+	username, password, ok := r.BasicAuth()
+	if !ok {
+		mensagem := fmt.Sprintf("%s: %v", "HTTP Basic Authentication obrigatório", http.StatusForbidden)
+		logger.Erro.Println(mensagem)
+		respondError(w, http.StatusInternalServerError, mensagem)
+		return
+	}
+
+	_, err := getUsuario(db, username, password)
+	if err != nil {
+		mensagem := fmt.Sprintf("%s", err)
+		respondError(w, http.StatusInternalServerError, mensagem)
+		return
+	}
+
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -312,4 +395,29 @@ func UmUsuario(db db.Database, w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusLengthRequired, mensagem)
 		return
 	}
+}
+
+//Recuperar usuário
+func getUsuario(db db.Database, login, senha string) (models.Usuario, error) {
+	var usuario models.Usuario
+
+	if login != "" && senha != "" {
+		usuario.Login = login
+		usuario.Senha = senha
+
+		var usuarioModel = db.Collection("usuario")
+		var interf models.Metodos
+
+		interf = usuario
+
+		var usuarioRecuperado models.Usuario
+		usuarioRecuperado, err := interf.Logar(usuarioModel)
+		if err != nil {
+			return usuario, err
+		}
+
+		usuario = usuarioRecuperado
+
+	}
+	return usuario, nil
 }
