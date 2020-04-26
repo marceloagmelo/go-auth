@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/marceloagmelo/go-auth/logger"
 	"upper.io/db.v3"
@@ -10,11 +11,13 @@ import (
 
 //Usuario estrutura de usuário
 type Usuario struct {
-	ID     int    `db:"id" json:"id"`
-	Login  string `db:"login" json:"login"`
-	Senha  string `db:"senha" json:"senha"`
-	Email  string `db:"email" json:"email"`
-	Status int    `db:"status" json:"status"`
+	ID              int       `db:"id" json:"id"`
+	Nome            string    `db:"nome" json:"nome"`
+	Senha           string    `db:"senha" json:"senha"`
+	Email           string    `db:"email" json:"email"`
+	DataCriacao     time.Time `db:"dtcriacao" json:"dtcriacao"`
+	DataAtualizacao time.Time `db:"dtatualizacao" json:"dtatualizacao"`
+	Status          int       `db:"status" json:"status"`
 }
 
 // Metodos interface
@@ -146,13 +149,13 @@ func (usu Usuario) Logar(usuarioModel db.Collection) (Usuario, error) {
 
 	var usuario Usuario
 
-	resultado := usuarioModel.Find("login=? and senha=?", usu.Login, usu.Senha)
+	resultado := usuarioModel.Find("nome=? and senha=?", usu.Nome, usu.Senha)
 	if count, err := resultado.Count(); count < 1 {
 		mensagem := ""
 		if err != nil {
 			mensagem = fmt.Sprintf("%s: %s", "Erro ao tentar logar usuário", err)
 		} else {
-			mensagem = fmt.Sprintf("Verifique se o usuário [%s] existe ou senha inválida!", usu.Login)
+			mensagem = fmt.Sprintf("Verifique se o usuário [%s] existe ou senha inválida!", usu.Nome)
 			err = errors.New(mensagem)
 		}
 
@@ -167,7 +170,7 @@ func (usu Usuario) Logar(usuarioModel db.Collection) (Usuario, error) {
 		if err != nil {
 			mensagem = fmt.Sprintf("%s: %s", "Erro ao recupear usuário", err)
 		} else {
-			mensagem = fmt.Sprintf("Usuário [%s] não encontrado!", usu.Login)
+			mensagem = fmt.Sprintf("Usuário [%s] não encontrado!", usu.Nome)
 		}
 
 		logger.Erro.Println(mensagem)

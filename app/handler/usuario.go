@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/marceloagmelo/go-auth/logger"
@@ -90,8 +91,12 @@ func Adicionar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 		novoUsuario.Senha = string(senhaHash)
 		novoUsuario.Status = 1
+		dtCriacao, _ := time.Parse(variaveis.DataFormatShortUS, time.Now().Format(variaveis.DataFormatShortUS))
+		novoUsuario.DataCriacao = dtCriacao
+		dtAtualizacao, _ := time.Parse(variaveis.DataFormatShortUS, time.Now().Format(variaveis.DataFormatShortUS))
+		novoUsuario.DataAtualizacao = dtAtualizacao
 
-		if novoUsuario.Login != "" && novoUsuario.Senha != "" && novoUsuario.Email != "" {
+		if novoUsuario.Nome != "" && novoUsuario.Senha != "" && novoUsuario.Email != "" {
 			var usuarioModel = db.Collection("usuario")
 			var interf models.Metodos
 
@@ -115,7 +120,7 @@ func Adicionar(db db.Database, w http.ResponseWriter, r *http.Request) {
 			}
 			novoUsuario.ID = id
 		} else {
-			mensagem := fmt.Sprint("Login, Senha our Email obrigatórios!")
+			mensagem := fmt.Sprint("Nome, Senha our Email obrigatórios!")
 			logger.Erro.Println(mensagem)
 
 			respondError(w, http.StatusLengthRequired, mensagem)
@@ -146,18 +151,27 @@ func Atualizar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal(reqBody, &novoUsuario)
 
-		senhaSum := sha256.Sum256([]byte(novoUsuario.Senha))
-		senhaHash := fmt.Sprintf("%X", senhaSum)
-
-		novoUsuario.Senha = string(senhaHash)
-
-		if novoUsuario.ID > 0 && novoUsuario.Login != "" && novoUsuario.Senha != "" && novoUsuario.Email != "" && utils.InBetween(novoUsuario.Status, 1, 2) {
+		if novoUsuario.ID > 0 && novoUsuario.Email != "" && utils.InBetween(novoUsuario.Status, 1, 2) {
 			var usuarioModel = db.Collection("usuario")
+
+			usuarioAtual, err := models.UmUsuario(usuarioModel, novoUsuario.ID)
+			if err != nil {
+				mensagem := fmt.Sprintf("%s: %s", "Erro ao recupear o usuário atual", err)
+				respondError(w, http.StatusInternalServerError, mensagem)
+				return
+			}
+
 			var interf models.Metodos
+
+			novoUsuario.Nome = usuarioAtual.Nome
+			novoUsuario.Senha = usuarioAtual.Senha
+			novoUsuario.DataCriacao = usuarioAtual.DataCriacao
+			dtAtualizacao, _ := time.Parse(variaveis.DataFormatShortUS, time.Now().Format(variaveis.DataFormatShortUS))
+			novoUsuario.DataAtualizacao = dtAtualizacao
 
 			interf = novoUsuario
 
-			err := interf.Atualizar(usuarioModel)
+			err = interf.Atualizar(usuarioModel)
 			if err != nil {
 				mensagem := fmt.Sprintf("%s: %s", "Erro ao atualizar o usuário", err)
 				respondError(w, http.StatusInternalServerError, mensagem)
@@ -194,8 +208,8 @@ func Logar(db db.Database, w http.ResponseWriter, r *http.Request) {
 
 		json.Unmarshal(reqBody, &usuario)
 
-		if usuario.Login != "" && usuario.Senha != "" {
-			usuarioRetorno, err := getUsuario(db, usuario.Login, usuario.Senha)
+		if usuario.Nome != "" && usuario.Senha != "" {
+			usuarioRetorno, err := getUsuario(db, usuario.Nome, usuario.Senha)
 			if err != nil {
 				mensagem := fmt.Sprintf("%s", err)
 				respondError(w, http.StatusInternalServerError, mensagem)
@@ -203,14 +217,14 @@ func Logar(db db.Database, w http.ResponseWriter, r *http.Request) {
 			}
 			usuario = usuarioRetorno
 		} else {
-			mensagem := fmt.Sprint("Login ou Senha obrigatórios!")
+			mensagem := fmt.Sprint("Nome ou Senha obrigatórios!")
 			logger.Erro.Println(mensagem)
 
 			respondError(w, http.StatusLengthRequired, mensagem)
 			return
 		}
 
-		mensagem := fmt.Sprintf("Login do usuário [%v] realizado com sucesso!", usuario.Login)
+		mensagem := fmt.Sprintf("Nome do usuário [%v] realizado com sucesso!", usuario.Nome)
 		logger.Info.Println(mensagem)
 
 		respondJSON(w, http.StatusOK, usuario)
@@ -350,11 +364,11 @@ func UmUsuario(db db.Database, w http.ResponseWriter, r *http.Request) {
 }
 
 //Recuperar usuário
-func getUsuario(db db.Database, login, senha string) (models.Usuario, error) {
+func getUsuario(db db.Database, nome, senha string) (models.Usuario, error) {
 	var usuario models.Usuario
 
-	if login != "" && senha != "" {
-		usuario.Login = login
+	if nome != "" && senha != "" {
+		usuario.Nome = nome
 		usuario.Senha = senha
 
 		var usuarioModel = db.Collection("usuario")
